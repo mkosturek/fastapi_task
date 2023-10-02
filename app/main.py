@@ -17,9 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(endpoints.router, tags=['customer'], prefix='/api/customer')
+app.include_router(endpoints.customer_router, tags=["customer"], prefix="/api/customer")
+app.include_router(endpoints.order_router, tags=["order"], prefix="/api/order")
 
 
-@app.get('/api/healthchecker')
+@app.get("/api/healthchecker")
 def root():
-    return {'message': 'Hello World'}
+    return {"message": "Hello World"}
