@@ -1,15 +1,15 @@
+import csv
 import uuid
-from fastapi import Depends, HTTPException, status, APIRouter, Response
+from io import StringIO
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.deps import get_db
-from app import models
-from app import schemas
-from typing import List
-from io import StringIO
-import csv
-from app.orders_queue import WAREHOUSE_QUEUE
 
+from app import models, schemas
+from app.deps import get_db
+from app.orders_queue import WAREHOUSE_QUEUE
 
 customer_router = APIRouter()
 
@@ -30,18 +30,6 @@ def get_customers(db: Session = Depends(get_db)) -> List[schemas.CustomerSchema]
     return db.query(models.CustomerModel).all()
 
 
-# @customer_router.get("/export")
-# def export_customers(db: Session = Depends(get_db)):
-#     from_db = db.query(models.CustomerModel).all()
-#     data = [[obj.id, obj.name, obj.description] for obj in from_db]
-#     f = StringIO()
-#     csv.writer(f).writerows(data)
-
-#     response = StreamingResponse(iter([f.getvalue()]), media_type="text/csv")
-#     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-#     return response
-
-
 @customer_router.get("/{id}")
 def get_customer(id: str, db: Session = Depends(get_db)):
     customer = (
@@ -52,6 +40,22 @@ def get_customer(id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No customer with this id: {id} found",
         )
+    return customer
+
+
+@customer_router.delete("/{id}")
+def delete_customer(id: str, db: Session = Depends(get_db)):
+    customer = (
+        db.query(models.CustomerModel).filter(models.CustomerModel.id == id).first()
+    )
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No customer with this id: {id} found",
+        )
+
+    db.delete(customer)
+    db.commit()
     return customer
 
 
@@ -149,6 +153,13 @@ def get_order(id: str, db: Session = Depends(get_db)) -> schemas.OrderSchema:
 @order_router.delete("/{id}")
 def delete_order(id: str, db: Session = Depends(get_db)) -> schemas.OrderSchema:
     order = db.query(models.OrderModel).filter(models.OrderModel.id == id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No order with this id: {id} found",
+        )
+
     db.delete(order)
     db.commit()
 
@@ -169,7 +180,7 @@ def populate_orders(count: int, db: Session = Depends(get_db)):
     customer = models.CustomerModel(
         name="TestUserWithManyOrders",
         description="test user with many orders",
-        **{"email": "testuserwithmanyorders@example.com"},
+        # email="testuserwithmanyorders@example.com",
     )
     db.add(customer)
     db.commit()

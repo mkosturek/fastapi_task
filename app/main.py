@@ -20,7 +20,7 @@ app.add_middleware(
 app.include_router(endpoints.customer_router, tags=["customer"], prefix="/api/customer")
 app.include_router(endpoints.order_router, tags=["order"], prefix="/api/order")
 
-app.include_router(endpoints.helper_router, tags=["order"], prefix="/api/helpers")
+app.include_router(endpoints.helper_router, tags=["helpers"], prefix="/api/helpers")
 
 
 @app.get("/api/healthchecker")
