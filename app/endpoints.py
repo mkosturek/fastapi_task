@@ -30,16 +30,16 @@ def get_customers(db: Session = Depends(get_db)) -> List[schemas.CustomerSchema]
     return db.query(models.CustomerModel).all()
 
 
-@customer_router.get("/export")
-def export_customers(db: Session = Depends(get_db)):
-    from_db = db.query(models.CustomerModel).all()
-    data = [[obj.id, obj.name, obj.description] for obj in from_db]
-    f = StringIO()
-    csv.writer(f).writerows(data)
+# @customer_router.get("/export")
+# def export_customers(db: Session = Depends(get_db)):
+#     from_db = db.query(models.CustomerModel).all()
+#     data = [[obj.id, obj.name, obj.description] for obj in from_db]
+#     f = StringIO()
+#     csv.writer(f).writerows(data)
 
-    response = StreamingResponse(iter([f.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-    return response
+#     response = StreamingResponse(iter([f.getvalue()]), media_type="text/csv")
+#     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+#     return response
 
 
 @customer_router.get("/{id}")
@@ -54,27 +54,6 @@ def get_customer(id: str, db: Session = Depends(get_db)):
         )
     return customer
 
-
-# @customer_router.post("/send_email", status_code=201)
-# def send_email(
-#     sender_id: str, payload: schemas.SendEmailSchema, db: Session = Depends(get_db)
-# ) -> bool:
-#     sender = (
-#         db.query(models.CustomerModel)
-#         .filter(models.CustomerModel.id == sender_id)
-#         .first()
-#     )
-
-#     sender.receiver_email = str(payload.receiver_email)
-#     db.commit()
-
-#     dummy_send_email(payload.text, sender)
-#     return True
-
-
-# def dummy_send_email(text: str, customer: models.CustomerModel):
-#     email = f"TO: {customer.receiver_email}\n" f"FROM: {customer.name}\n\n" f"{text}"
-#     print(email)
 
 order_router = APIRouter()
 
@@ -96,7 +75,6 @@ def add_order(
         )
 
     order = models.OrderModel(**payload.model_dump())
-    customer.place_order(order, db)
     return schemas.OrderSchema(
         product_name=order.product_name,
         customer_id=order.customer_id,
@@ -127,15 +105,24 @@ def get_orders(
 
 
 @order_router.get("/export")
-def export_orders(customer_id: uuid.UUID, db: Session = Depends(get_db)):
-    orders_from_db = (
-        db.query(models.OrderModel)
-        .filter(models.OrderModel.customer_id == customer_id)
-        .all()
-    )
-    data = [[order.id, order.product_name, order.ready] for order in orders_from_db]
+def export_orders(
+    customer_id: uuid.UUID,
+    filter_ready: bool | None = None,
+    db: Session = Depends(get_db),
+):
+    orders_from_db = db.query(models.OrderModel).all()
+
+    data_to_report = []
+    for order in orders_from_db:
+        if order.customer_id == customer_id and (
+            filter_ready is None or filter_ready == order.ready
+        ):
+            data_to_report.append([order.id, order.product_name, order.ready])
+
     f = StringIO()
-    csv.writer(f).writerows(data)
+    writer = csv.writer(f)
+    for order_data in data_to_report:
+        writer.writerow(order_data)
 
     response = StreamingResponse(iter([f.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
@@ -172,3 +159,27 @@ def delete_order(id: str, db: Session = Depends(get_db)) -> schemas.OrderSchema:
         ready=order.ready,
         carrier=None,
     )
+
+
+helper_router = APIRouter()
+
+
+@helper_router.get("/populate-orders")
+def populate_orders(count: int, db: Session = Depends(get_db)):
+    customer = models.CustomerModel(
+        name="TestUserWithManyOrders",
+        description="test user with many orders",
+        **{"email": "testuserwithmanyorders@example.com"},
+    )
+    db.add(customer)
+    db.commit()
+    db.refresh(customer)
+
+    for i in range(count):
+        order = models.OrderModel(
+            customer_id=customer.id,
+            product_name=f"product_{i}",
+        )
+        db.add(order)
+    db.commit()
+    return customer.id

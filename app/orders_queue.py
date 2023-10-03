@@ -1,24 +1,25 @@
-from dataclasses import dataclass
-from .models.order import OrderModel
-from sqlalchemy.orm import Session
 import random
 
+from sqlalchemy.orm import Session
 
-@dataclass
+from .models.order import OrderModel
+
+
 class OrdersQueue:
-    def send_order(self, order: OrderModel):
-        print(f"Sending order {order.id} to the warehouse")
-
     def get_carrier(self, order: OrderModel, db: Session) -> str | None:
         if not self.is_ready(order, db):
             return None
         return random.choice(["DHL", "InPost", "DPD", "FedEx", "UPS", "GLS"])
 
     def is_ready(self, order: OrderModel, db: Session) -> bool:
-        if not order.ready and random.random() > 0.8:
+        if not order.ready and self._query_external_service_for_readiness(order):
             order.ready = True
             db.commit()
         return order.ready
+
+    @staticmethod
+    def _query_external_service_for_readiness(order: OrderModel) -> bool:
+        return random.random() > 0.8  # mocked behavior
 
 
 WAREHOUSE_QUEUE = OrdersQueue()

@@ -1,9 +1,7 @@
 import uuid
 from app.database import Base
 from sqlalchemy import Column, String
-from sqlalchemy.orm import relationship, Session
-from app.orders_queue import WAREHOUSE_QUEUE
-from .order import OrderModel
+from sqlalchemy.orm import relationship
 
 
 class CustomerModel(Base):
@@ -16,10 +14,3 @@ class CustomerModel(Base):
     receiver_email = Column(String, nullable=True)
 
     orders = relationship("OrderModel", back_populates="customer")
-
-    def place_order(self, order: OrderModel, db: Session):
-        db.add(order)
-        db.commit()
-        db.refresh(order)
-
-        WAREHOUSE_QUEUE.send_order(order)
