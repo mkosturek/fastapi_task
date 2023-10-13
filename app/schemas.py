@@ -1,7 +1,5 @@
-from datetime import datetime
-from typing import List
 import uuid
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel
 
 
 class CustomerBaseSchema(BaseModel):
@@ -18,11 +16,6 @@ class CreateCustomerSchema(CustomerBaseSchema):
 
 class CustomerSchema(CustomerBaseSchema):
     id: uuid.UUID
-
-
-# class SendEmailSchema(BaseModel):
-#     text: str
-#     receiver_email: EmailStr
 
 
 class OrderBaseSchema(BaseModel):

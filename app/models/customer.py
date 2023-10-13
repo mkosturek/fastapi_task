@@ -11,6 +11,5 @@ class CustomerModel(Base):
     )
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
-    receiver_email = Column(String, nullable=True)
 
     orders = relationship("OrderModel", back_populates="customer")
