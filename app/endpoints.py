@@ -79,6 +79,9 @@ def add_order(
         )
 
     order = models.OrderModel(**payload.model_dump())
+    db.add(order)
+    db.commit()
+    db.refresh(order)
     return schemas.OrderSchema(
         product_name=order.product_name,
         customer_id=order.customer_id,

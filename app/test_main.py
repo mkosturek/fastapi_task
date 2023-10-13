@@ -10,8 +10,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 Base.metadata.create_all(bind=engine)
@@ -75,12 +74,54 @@ def test_get_customers():
     assert len(response.json()) == 2
 
 
-def test_csv_customers():
-    company_data = {"name": "Company", "description": "description"}
-    data = create_customer(**company_data).json()
-    data2 = create_customer(**company_data).json()
+def create_order(customer_id, product_name):
+    return client.post(
+        "/api/order", json={"customer_id": customer_id, "product_name": product_name}
+    )
 
-    response = client.get("/api/customer/export")
 
-    assert data['id'] in str(response.content)
-    assert data2['id'] in str(response.content)
+def test_create_order():
+    customer_response = create_customer("Company name", "Company description")
+    customer_id = customer_response.json()["id"]
+    order_response = create_order(customer_id, "Product name")
+    assert order_response.status_code == 201
+
+    data = order_response.json()
+    assert "id" in data
+    assert "ready" in data
+    assert "carrier" in data
+    assert data["product_name"] == "Product name"
+    assert data["customer_id"] == customer_id
+
+
+def test_get_order():
+    customer_data = create_customer("Company", "description").json()
+    order_data = create_order(customer_data["id"], "Prpduct name").json()
+
+    response = client.get(f"/api/order/{order_data['id']}")
+    assert response.status_code == 200
+    assert order_data == response.json()
+
+
+def test_get_orders():
+    customer_data = create_customer("Company", "description").json()
+
+    create_order(customer_data["id"], "Prpduct name")
+    create_order(customer_data["id"], "Prpduct name")
+
+    response = client.get("/api/order")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+
+def test_csv_orders():
+    customer_data = create_customer("Company", "description").json()
+
+    order_1 = create_order(customer_data["id"], "Prpduct name")
+    order_2 = create_order(customer_data["id"], "Prpduct name")
+
+    response = client.get("/api/order/export")
+
+    assert order_1["id"] in str(response.content)
+    assert order_2["id"] in str(response.content)
