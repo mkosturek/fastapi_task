@@ -2,7 +2,7 @@ import random
 
 from sqlalchemy.orm import Session
 
-from .models.order import OrderModel
+from .models import OrderModel
 
 
 class OrdersQueue:
