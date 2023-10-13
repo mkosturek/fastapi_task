@@ -117,6 +117,7 @@ def export_orders(
     filter_ready: bool | None = None,
     db: Session = Depends(get_db),
 ):
+    customer_id = str(customer_id)
     orders_from_db = db.query(models.OrderModel).all()
 
     data_to_report = []

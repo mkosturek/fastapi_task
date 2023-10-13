@@ -96,7 +96,7 @@ def test_create_order():
 
 def test_get_order():
     customer_data = create_customer("Company", "description").json()
-    order_data = create_order(customer_data["id"], "Prpduct name").json()
+    order_data = create_order(customer_data["id"], "Product name").json()
 
     response = client.get(f"/api/order/{order_data['id']}")
     assert response.status_code == 200
@@ -106,8 +106,8 @@ def test_get_order():
 def test_get_orders():
     customer_data = create_customer("Company", "description").json()
 
-    create_order(customer_data["id"], "Prpduct name")
-    create_order(customer_data["id"], "Prpduct name")
+    create_order(customer_data["id"], "Product name")
+    create_order(customer_data["id"], "Product name")
 
     response = client.get("/api/order")
 
@@ -118,10 +118,12 @@ def test_get_orders():
 def test_csv_orders():
     customer_data = create_customer("Company", "description").json()
 
-    order_1 = create_order(customer_data["id"], "Prpduct name")
-    order_2 = create_order(customer_data["id"], "Prpduct name")
+    order_1 = create_order(customer_data["id"], "Product name").json()
+    order_2 = create_order(customer_data["id"], "Product name").json()
 
-    response = client.get("/api/order/export")
+    response = client.get(
+        "/api/order/export", params={"customer_id": customer_data["id"]}
+    )
 
     assert order_1["id"] in str(response.content)
     assert order_2["id"] in str(response.content)
