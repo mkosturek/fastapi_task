@@ -122,7 +122,7 @@ def export_orders(
 
     data_to_report = []
     for order in orders_from_db:
-        if order.customer_id == customer_id and (
+        if str(order.customer_id) == customer_id and (
             filter_ready is None or filter_ready == order.ready
         ):
             data_to_report.append([order.id, order.product_name, order.ready])
